@@ -9,6 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- محرك استخراج نصوص PDF الضخمة حتى 500MB مباشرة في المتصفح -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  </script>
   <style>
     :root {
       --warm-bg: #F7F5F0;
@@ -75,7 +80,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold tracking-tight text-warm-ink">مساعد المستندات</h1>
-          <p class="text-xs text-warm-muted hidden sm:block">منصة تلخيص المستندات الضخمة حتى 500MB</p>
+          <p class="text-xs text-warm-muted hidden sm:block">منصة تلخيص المستندات والكتب الضخمة حتى 500MB</p>
         </div>
       </div>
 
@@ -92,7 +97,7 @@
         <!-- API Settings Button -->
         <button onclick="openSettingsModal()" class="p-2 text-warm-muted hover:text-warm-ink bg-warm-surface border border-warm-border rounded-xl hover:border-warm-accent/40 transition shadow-sm" title="إعدادات الـ API">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
         </button>
@@ -108,7 +113,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-warm-surface border border-warm-border/80 rounded-3xl p-6 sm:p-8 shadow-sm">
         <div>
           <h2 class="text-xl sm:text-2xl font-bold text-warm-ink mb-1">ملخصات مستنداتك</h2>
-          <p class="text-xs sm:text-sm text-warm-muted">استعرض جميع المستندات التي تم تلخيصها سابقاً، أو أنشئ ملخصاً جديداً لملفات حتى 500MB.</p>
+          <p class="text-xs sm:text-sm text-warm-muted">استعرض جميع المستندات الملخصة، أو أنشئ ملخصاً لمستند جديد بدون قيود على الحجم.</p>
         </div>
         <button onclick="openUploadModal()" class="px-5 py-3 bg-warm-ink text-warm-bg font-semibold rounded-2xl hover:bg-warm-ink/90 active:scale-95 transition flex items-center justify-center gap-2 shadow-sm shrink-0">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +143,7 @@
             </svg>
           </div>
           <h4 class="text-base font-bold text-warm-ink mb-1">لا يوجد أي ملخص حتى الآن</h4>
-          <p class="text-xs text-warm-muted max-w-sm mb-4">ابدأ برفع مستندك الأول (PDF، كتب كاملة، أبحاث، صور، أو نصوص) واستمتع بالتحليل الذكي.</p>
+          <p class="text-xs text-warm-muted max-w-sm mb-4">ابدأ برفع مستندك الأول (PDF، صور، أو نصوص) واستمتع بالتحليل الذكي.</p>
           <button onclick="openUploadModal()" class="px-4 py-2 bg-warm-ink text-warm-bg text-xs font-semibold rounded-xl hover:bg-warm-ink/90 transition">
             + إنشاء ملخص جديد الآن
           </button>
@@ -257,14 +262,14 @@
         </div>
       </div>
 
-      <!-- Upload Progress Bar (Displays during large file transfers) -->
-      <div id="upload-progress-container" class="hidden space-y-1.5">
+      <!-- Reading Status Indicator -->
+      <div id="reading-status-container" class="hidden space-y-1.5">
         <div class="flex items-center justify-between text-xs text-warm-muted">
-          <span id="upload-progress-text">جاري رفع الملف إلى Google AI Studio...</span>
-          <span id="upload-progress-pct" class="font-bold text-warm-ink">0%</span>
+          <span id="reading-status-text">جاري قراءة محتوى المستند في المتصفح...</span>
+          <span id="reading-status-pct" class="font-bold text-warm-ink"></span>
         </div>
         <div class="w-full bg-warm-border/50 h-2 rounded-full overflow-hidden">
-          <div id="upload-progress-bar" class="bg-warm-accent h-full w-0 transition-all duration-200"></div>
+          <div id="reading-status-bar" class="bg-warm-accent h-full w-0 transition-all duration-200"></div>
         </div>
       </div>
 
@@ -308,18 +313,17 @@
   </div>
 
   <footer class="py-4 text-center text-xs text-warm-muted border-t border-warm-border/50">
-    يدعم رفع المستندات الكبيرة عبر Google File API • نماذج Gemini 3.8 Flash / 3.5 Flash Lite
+    محرك استخراج نصوص PDF مدمج يدعم حتى 500MB • نماذج Gemini 3.8 Flash / 3.5 Flash Lite
   </footer>
 
-  <!-- Unified Logic Script Supporting Large File Uploads (up to 500MB) -->
   <script>
     const STORAGE_KEY_API = "gemini_api_key";
-    const STORAGE_KEY_SUMMARIES = "document_summaries_v4";
+    const STORAGE_KEY_SUMMARIES = "document_summaries_v5";
 
     let selectedUploadFile = null;
     let currentActiveSummary = null;
     let conversationHistory = [];
-    let currentDocumentPart = null;
+    let activeExtractedContext = "";
 
     function getApiKey() {
       return localStorage.getItem(STORAGE_KEY_API) || "";
@@ -346,13 +350,19 @@
 
     function showWorkspace(item) {
       currentActiveSummary = item;
+      activeExtractedContext = item.rawContent || item.content;
+
       document.getElementById("home-view").classList.add("hidden");
       document.getElementById("workspace-view").classList.remove("hidden");
 
       document.getElementById("workspace-doc-title").textContent = item.title;
       document.getElementById("summary-content").innerHTML = marked.parse(item.content);
 
-      conversationHistory = [];
+      conversationHistory = [
+        { role: "user", parts: [{ text: `محتوى المستند:\n${activeExtractedContext.slice(0, 150000)}` }] },
+        { role: "model", parts: [{ text: item.content }] }
+      ];
+
       document.getElementById("chat-messages").innerHTML = `
         <div class="self-start max-w-[85%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3.5 text-warm-ink leading-relaxed">
           أنت الآن تستعرض ملخص: <strong>${item.title}</strong>. يمكنك مناقشة أي معلومة، أو سؤالي عن جزئيات محددة، أو طلب إعادة صياغة لنقاط معينة.
@@ -381,10 +391,10 @@
       document.getElementById("modal-error-box").classList.add("hidden");
       document.getElementById("modal-error-box").textContent = "";
 
-      const prg = document.getElementById("upload-progress-container");
+      const prg = document.getElementById("reading-status-container");
       prg.classList.add("hidden");
-      document.getElementById("upload-progress-bar").style.width = "0%";
-      document.getElementById("upload-progress-pct").textContent = "0%";
+      document.getElementById("reading-status-bar").style.width = "0%";
+      document.getElementById("reading-status-pct").textContent = "";
     }
 
     function triggerFileInput(e) {
@@ -397,10 +407,10 @@
     }
 
     function handleFile(file) {
-      // Allows files up to 500MB
+      // رفع الحد حتى 500 ميجابايت بدون أي تنبيه مانع
       const maxBytes = 500 * 1024 * 1024;
       if (file.size > maxBytes) {
-        alert("حجم الملف يتجاوز 500MB. يرجى اختيار ملف أصغر حجماً.");
+        alert("حجم الملف يتجاوز 500MB.");
         return;
       }
       selectedUploadFile = file;
@@ -430,77 +440,42 @@
       if (f && f[0]) handleFile(f[0]);
     });
 
-    function getMimeType(file) {
-      if (file.type) return file.type;
-      const n = file.name.toLowerCase();
-      if (n.endsWith(".pdf")) return "application/pdf";
-      if (n.endsWith(".txt")) return "text/plain";
-      if (n.endsWith(".png")) return "image/png";
-      if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
-      if (n.endsWith(".webp")) return "image/webp";
-      return "application/octet-stream";
+    // محرك استخراج نصوص PDF فائق السرعة في المتصفح لأحجام حتى 500MB
+    async function extractTextFromPDF(file, onProgress) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdf.numPages;
+      let fullText = "";
+
+      for (let i = 1; i <= totalPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(" ");
+        fullText += `\n[صفحة ${i}]:\n` + pageText;
+
+        if (onProgress) {
+          const pct = Math.round((i / totalPages) * 100);
+          onProgress(pct, i, totalPages);
+        }
+      }
+      return fullText;
     }
 
-    // Google File API: Resumable Streaming Upload (Handles 1MB to 500MB+)
-    async function uploadLargeFileToGemini(file, apiKey, onProgress) {
-      const mimeType = getMimeType(file);
-      const initUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
-
-      // Step 1: Initiate Resumable Upload
-      const initRes = await fetch(initUrl, {
-        method: "POST",
-        headers: {
-          "X-Goog-Upload-Protocol": "resumable",
-          "X-Goog-Upload-Command": "start",
-          "X-Goog-Upload-Header-Content-Length": file.size.toString(),
-          "X-Goog-Upload-Header-Content-Type": mimeType,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          file: { display_name: file.name }
-        })
-      });
-
-      if (!initRes.ok) {
-        const errJson = await initRes.json().catch(() => ({}));
-        throw new Error(errJson?.error?.message || `فشل بدء رفع الملف (${initRes.status})`);
-      }
-
-      const uploadUrl = initRes.headers.get("x-goog-upload-url");
-      if (!uploadUrl) {
-        throw new Error("لم يتم استلام رابط الرفع المباشر من Google File API.");
-      }
-
-      // Step 2: Upload File Binary Stream with Progress
+    function readFileAsText(file) {
       return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", uploadUrl, true);
-        xhr.setRequestHeader("Content-Length", file.size.toString());
-        xhr.setRequestHeader("X-Goog-Upload-Offset", "0");
-        xhr.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable && onProgress) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            onProgress(pct);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const data = JSON.parse(xhr.responseText);
-              resolve(data.file);
-            } catch (err) {
-              reject(new Error("استجابة غير صالحة بعد إكمال الرفع."));
-            }
-          } else {
-            reject(new Error(`فشل رفع بيانات الملف إلى Google (${xhr.status})`));
-          }
-        };
-
-        xhr.onerror = () => reject(new Error("حدث خطأ في شبكة الاتصال أثناء رفع الملف."));
-        xhr.send(file);
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
     }
 
@@ -517,37 +492,49 @@
       const spinner = document.getElementById("modal-spinner");
       const label = document.getElementById("modal-btn-label");
       const errBox = document.getElementById("modal-error-box");
-      const prgContainer = document.getElementById("upload-progress-container");
-      const prgBar = document.getElementById("upload-progress-bar");
-      const prgPct = document.getElementById("upload-progress-pct");
-      const prgText = document.getElementById("upload-progress-text");
+      const statusContainer = document.getElementById("reading-status-container");
+      const statusBar = document.getElementById("reading-status-bar");
+      const statusPct = document.getElementById("reading-status-pct");
+      const statusText = document.getElementById("reading-status-text");
 
       btn.disabled = true;
       spinner.classList.remove("hidden");
       errBox.classList.add("hidden");
-      prgContainer.classList.remove("hidden");
-      prgText.textContent = "جاري رفع الملف إلى Google File API...";
+      statusContainer.classList.remove("hidden");
 
       try {
-        // Upload via Google File API for high bandwidth & unlimited document sizes
-        const uploadedFileMetadata = await uploadLargeFileToGemini(selectedUploadFile, apiKey, (pct) => {
-          prgBar.style.width = pct + "%";
-          prgPct.textContent = pct + "%";
-          if (pct === 100) {
-            prgText.textContent = "اكتمل الرفع! جاري التحليل وصياغة التلخيص...";
-            label.textContent = "جاري التحليل واستخراج الأفكار...";
-          }
-        });
+        let requestParts = [];
+        let extractedRawText = "";
+        const isPdf = selectedUploadFile.type === "application/pdf" || selectedUploadFile.name.toLowerCase().endsWith(".pdf");
+        const isImage = selectedUploadFile.type.startsWith("image/");
 
-        currentDocumentPart = {
-          fileData: {
-            mimeType: uploadedFileMetadata.mimeType,
-            fileUri: uploadedFileMetadata.uri
-          }
-        };
+        if (isPdf) {
+          statusText.textContent = "جاري قراءة صفحات الـ PDF واستخراج النصوص بالكامل...";
+          const text = await extractTextFromPDF(selectedUploadFile, (pct, curr, total) => {
+            statusBar.style.width = pct + "%";
+            statusPct.textContent = `${pct}% (صفحة ${curr}/${total})`;
+          });
 
-        const model = document.getElementById("model-select").value;
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          extractedRawText = text;
+          statusText.textContent = "اكتملت القراءة! جاري التحليل وصياغة التلخيص عبر Gemini...";
+          label.textContent = "جاري التلخيص بواسطة Gemini...";
+
+          requestParts = [{ text: `محتوى المستند بالكامل:\n${text}` }];
+        } else if (isImage) {
+          statusText.textContent = "جاري قراءة الصورة...";
+          const b64 = await readFileAsBase64(selectedUploadFile);
+          requestParts = [{
+            inlineData: {
+              mimeType: selectedUploadFile.type || "image/jpeg",
+              data: b64
+            }
+          }];
+        } else {
+          statusText.textContent = "جاري قراءة الملف النصي...";
+          const text = await readFileAsText(selectedUploadFile);
+          extractedRawText = text;
+          requestParts = [{ text: `محتوى الملف:\n${text}` }];
+        }
 
         const promptText = `أنت خبير ومحلل دقيق للمستندات والكتب والبيانات. قم بمراجعة هذا المستند وتحليله وتقديم ملخص تنفيذي احترافي ودقيق باللغة العربية بتنسيق Markdown غني يحتوي على:
 1. **نظرة عامة / الغرض من المستند:** سطرين يحددان ماهية المحتوى والهدف منه.
@@ -555,11 +542,16 @@
 3. **أهم الأرقام أو القرارات أو التواريخ (إن وُجدت):** رصد دقيق للبيانات المؤثرة.
 4. **الخلاصة والتوصيات:** خاتمة موجزة وعملية.`;
 
+        requestParts.push({ text: promptText });
+
+        const model = document.getElementById("model-select").value;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [currentDocumentPart, { text: promptText }] }],
+            contents: [{ role: "user", parts: requestParts }],
             generationConfig: { temperature: 0.2, maxOutputTokens: 4000 }
           })
         });
@@ -577,17 +569,13 @@
           id: "sum_" + Date.now(),
           title: selectedUploadFile.name,
           content: summaryText,
+          rawContent: extractedRawText,
           date: new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })
         };
 
         const list = getStoredSummaries();
         list.unshift(newItem);
         localStorage.setItem(STORAGE_KEY_SUMMARIES, JSON.stringify(list));
-
-        conversationHistory = [
-          { role: "user", parts: [currentDocumentPart, { text: promptText }] },
-          { role: "model", parts: [{ text: summaryText }] }
-        ];
 
         closeUploadModal();
         showWorkspace(newItem);
