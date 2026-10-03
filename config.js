@@ -1,14 +1,14 @@
 const CONFIG = {
   STORAGE_KEY: "gemini_api_key",
-  DEFAULT_MODEL: "gemini-2.5-flash",
+  DEFAULT_MODEL: "gemini-3.5-flash-lite",
   AVAILABLE_MODELS: {
-    "gemini-2.5-flash": {
-      name: "Gemini 2.5 Flash",
-      endpointId: "gemini-2.5-flash"
+    "gemini-3.5-flash-lite": {
+      name: "Gemini 3.5 Flash Lite",
+      endpointId: "gemini-3.5-flash-lite"
     },
-    "gemini-2.5-flash-lite": {
-      name: "Gemini 2.5 Flash Lite",
-      endpointId: "gemini-2.5-flash-lite"
+    "gemini-3.8-flash": {
+      name: "Gemini 3.8 Flash",
+      endpointId: "gemini-3.8-flash"
     }
   },
 
