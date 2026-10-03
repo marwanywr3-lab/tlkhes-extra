@@ -22,11 +22,19 @@
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold tracking-tight text-warm-ink">مساعد المستندات</h1>
-          <p class="text-xs text-warm-muted hidden sm:block">استخراج وتحليل وتلخيص ذكي مدعوم بـ Gemini</p>
+          <p class="text-xs text-warm-muted hidden sm:block">إدارة وتحليل وتلخيص المستندات المتعددة</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- New Summary Button in Header -->
+        <button id="new-summary-btn" class="px-3.5 py-1.5 bg-warm-ink text-warm-bg text-xs font-semibold rounded-xl hover:bg-warm-ink/90 active:scale-95 transition flex items-center gap-1.5 shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>إنشاء ملخص جديد</span>
+        </button>
+
         <!-- Model Selection -->
         <div class="flex items-center bg-warm-bg border border-warm-border rounded-xl px-2.5 py-1">
           <span class="text-[11px] text-warm-muted ml-1.5 hidden md:inline">النموذج:</span>
@@ -47,88 +55,96 @@
     </div>
   </header>
 
-  <!-- Main Content Grid -->
+  <!-- Main Grid: Sidebar for Summaries (3 cols) | Workspace & Chat (9 cols) -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- Left Column: Upload, Saved Summaries Bar & Summary Content (7 cols on lg) -->
-    <section class="lg:col-span-7 flex flex-col gap-4">
-      
-      <!-- Upload Dropzone -->
-      <div id="drop-zone" class="border-2 border-dashed border-warm-border hover:border-warm-accent/70 bg-warm-surface/70 hover:bg-warm-surface rounded-2xl p-5 text-center transition-all cursor-pointer group shadow-sm">
-        <input type="file" id="file-input" class="hidden" accept="application/pdf,image/png,image/jpeg,image/webp,text/plain">
-        
-        <div id="drop-prompt" class="flex flex-col items-center justify-center gap-2 py-2">
-          <div class="w-11 h-11 rounded-2xl bg-warm-border/50 group-hover:bg-warm-accent/15 flex items-center justify-center text-warm-muted group-hover:text-warm-accent transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-          </div>
-          <p class="text-sm font-semibold text-warm-ink">اسحب وأفلت الملف هنا، أو <span class="text-warm-accent underline underline-offset-4">تصفح جهازك</span></p>
-          <p class="text-xs text-warm-muted">يدعم PDF، الصور الممسوحة ضوئياً (PNG, JPG, WEBP)، والملفات النصية (حد أقصى 20MB)</p>
+    <!-- Column 1: Saved Summaries Sidebar (Always visible on homepage) -->
+    <aside class="lg:col-span-3 flex flex-col bg-warm-surface border border-warm-border/80 rounded-2xl p-4 shadow-sm h-[260px] lg:h-[720px]">
+      <div class="flex items-center justify-between pb-3 border-b border-warm-border/60 mb-3">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+          </svg>
+          <h2 class="text-xs font-bold text-warm-ink">قائمة الملخصات</h2>
+          <span id="saved-count-badge" class="px-1.5 py-0.5 bg-warm-accent/15 text-warm-accent font-bold text-[10px] rounded-full">0</span>
         </div>
-
-        <!-- File Preview Bar -->
-        <div id="file-preview-container" class="hidden flex items-center justify-between p-3 bg-warm-bg border border-warm-border rounded-xl">
-          <div class="flex items-center gap-3 overflow-hidden">
-            <div id="preview-thumbnail" class="w-10 h-10 rounded-lg bg-warm-surface border border-warm-border flex items-center justify-center text-warm-accent shrink-0 overflow-hidden text-xs font-bold">
-              DOC
-            </div>
-            <div class="text-right truncate">
-              <p id="file-name" class="text-xs sm:text-sm font-bold text-warm-ink truncate">document.pdf</p>
-              <p id="file-size" class="text-[11px] text-warm-muted">0 KB</p>
-            </div>
-          </div>
-          <button id="remove-file-btn" class="p-1.5 text-warm-muted hover:text-red-600 hover:bg-warm-border/40 rounded-lg transition" title="حذف الملف">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-            </svg>
-          </button>
-        </div>
+        <button id="clear-all-summaries-btn" class="text-[11px] text-warm-muted hover:text-red-600 transition">مسح الكل</button>
       </div>
 
-      <!-- Action Button -->
-      <button id="generate-summary-btn" disabled class="w-full py-3 px-4 bg-warm-ink text-warm-bg font-semibold rounded-xl hover:bg-warm-ink/90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-sm">
-        <svg id="btn-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span id="btn-label">بدء تحليل وتلخيص المستند</span>
+      <!-- Quick Add New Button inside Sidebar -->
+      <button id="sidebar-new-summary-btn" class="w-full mb-3 py-2 px-3 border border-dashed border-warm-border hover:border-warm-accent/60 bg-warm-bg hover:bg-warm-surface rounded-xl text-xs font-semibold text-warm-ink flex items-center justify-center gap-1.5 transition">
+        <span>+ إنشاء ملخص جديد</span>
       </button>
 
-      <!-- Saved Summaries Carousel / Chips Bar -->
-      <div id="saved-summaries-wrapper" class="bg-warm-surface border border-warm-border/80 rounded-2xl p-3 shadow-sm">
-        <div class="flex items-center justify-between pb-2 mb-2 border-b border-warm-border/50 px-1">
-          <span class="text-xs font-bold text-warm-ink flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5 text-warm-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-            </svg>
-            الملخصات المحفوظة (<span id="saved-count">0</span>)
-          </span>
-          <button id="clear-all-summaries-btn" class="text-[11px] text-warm-muted hover:text-red-600 transition">
-            مسح الكل
-          </button>
+      <!-- Scrollable Summaries List -->
+      <div id="saved-summaries-list" class="flex-1 overflow-y-auto space-y-2 pr-0.5 text-xs">
+        <p class="text-center text-warm-muted py-8 text-xs italic">لا توجد ملخصات سابقة.<br>انقر على "إنشاء ملخص جديد" للبدء.</p>
+      </div>
+    </aside>
+
+    <!-- Column 2: Upload Area & Summary Output (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col gap-4">
+      
+      <!-- Upload Dropzone (Visible when creating or changing file) -->
+      <div id="drop-zone-section" class="flex flex-col gap-3">
+        <div id="drop-zone" class="border-2 border-dashed border-warm-border hover:border-warm-accent/70 bg-warm-surface/70 hover:bg-warm-surface rounded-2xl p-4 text-center transition-all cursor-pointer group shadow-sm">
+          <input type="file" id="file-input" class="hidden" accept="application/pdf,image/png,image/jpeg,image/webp,text/plain">
+          
+          <div id="drop-prompt" class="flex flex-col items-center justify-center gap-1.5 py-1">
+            <div class="w-9 h-9 rounded-xl bg-warm-border/50 group-hover:bg-warm-accent/15 flex items-center justify-center text-warm-muted group-hover:text-warm-accent transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+            </div>
+            <p class="text-xs sm:text-sm font-semibold text-warm-ink">اسحب وأفلت الملف هنا، أو <span class="text-warm-accent underline underline-offset-4">تصفح جهازك</span></p>
+            <p class="text-[11px] text-warm-muted">يدعم PDF، الصور، والنصوص (حد أقصى 20MB)</p>
+          </div>
+
+          <!-- File Preview -->
+          <div id="file-preview-container" class="hidden flex items-center justify-between p-2.5 bg-warm-bg border border-warm-border rounded-xl">
+            <div class="flex items-center gap-2.5 overflow-hidden">
+              <div id="preview-thumbnail" class="w-9 h-9 rounded-lg bg-warm-surface border border-warm-border flex items-center justify-center text-warm-accent shrink-0 overflow-hidden text-xs font-bold">
+                DOC
+              </div>
+              <div class="text-right truncate">
+                <p id="file-name" class="text-xs font-bold text-warm-ink truncate">document.pdf</p>
+                <p id="file-size" class="text-[10px] text-warm-muted">0 KB</p>
+              </div>
+            </div>
+            <button id="remove-file-btn" class="p-1 text-warm-muted hover:text-red-600 transition" title="حذف الملف">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div id="saved-summaries-list" class="flex gap-2 overflow-x-auto pb-1 text-xs">
-          <span class="text-[11px] text-warm-muted py-1 px-2 italic">لا توجد ملخصات محفوظة حتى الآن. ستُحفظ ملخصاتك تلقائياً هنا.</span>
-        </div>
+
+        <!-- Action Button -->
+        <button id="generate-summary-btn" disabled class="w-full py-2.5 px-4 bg-warm-ink text-warm-bg text-xs font-semibold rounded-xl hover:bg-warm-ink/90 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-sm">
+          <svg id="btn-spinner" class="w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="btn-label">بدء تحليل وتلخيص وحفظ المستند</span>
+        </button>
       </div>
 
-      <!-- Summary Card Display -->
-      <div class="flex-1 bg-warm-surface border border-warm-border/80 rounded-2xl p-5 sm:p-6 flex flex-col min-h-[380px] shadow-sm relative">
-        <div class="flex items-center justify-between pb-3.5 border-b border-warm-border/60 mb-4">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-warm-accent"></span>
-            <h2 id="current-summary-title" class="text-sm font-bold text-warm-ink">الملخص التنفيذي</h2>
+      <!-- Current Active Summary Box -->
+      <div class="flex-1 bg-warm-surface border border-warm-border/80 rounded-2xl p-4 sm:p-5 flex flex-col min-h-[380px] shadow-sm relative">
+        <div class="flex items-center justify-between pb-3 border-b border-warm-border/60 mb-3">
+          <div class="flex items-center gap-2 overflow-hidden">
+            <span class="w-2.5 h-2.5 rounded-full bg-warm-accent shrink-0"></span>
+            <h3 id="current-summary-title" class="text-xs sm:text-sm font-bold text-warm-ink truncate">الملخص التنفيذي</h3>
           </div>
           
-          <div class="flex items-center gap-1.5">
-            <button id="copy-summary-btn" class="text-xs text-warm-muted hover:text-warm-ink flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-warm-border/60 hover:bg-warm-border/30 transition">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="copy-summary-btn" class="text-xs text-warm-muted hover:text-warm-ink flex items-center gap-1 px-2 py-1 rounded-lg border border-warm-border/60 hover:bg-warm-border/30 transition">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
               </svg>
               <span>نسخ</span>
             </button>
-            <button id="download-summary-btn" class="text-xs text-warm-muted hover:text-warm-ink flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-warm-border/60 hover:bg-warm-border/30 transition">
+            <button id="download-summary-btn" class="text-xs text-warm-muted hover:text-warm-ink flex items-center gap-1 px-2 py-1 rounded-lg border border-warm-border/60 hover:bg-warm-border/30 transition">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
               </svg>
@@ -145,39 +161,39 @@
           <div class="h-4 bg-warm-border/40 rounded-md w-2/3"></div>
         </div>
 
-        <!-- Output Content Area -->
-        <div id="summary-content" class="text-sm text-warm-ink/90 leading-relaxed overflow-y-auto flex-1 markdown-body">
-          <div class="flex flex-col items-center justify-center text-center py-20 text-warm-muted">
+        <!-- Summary Markdown Viewer -->
+        <div id="summary-content" class="text-xs sm:text-sm text-warm-ink/90 leading-relaxed overflow-y-auto flex-1 markdown-body">
+          <div class="flex flex-col items-center justify-center text-center py-24 text-warm-muted">
             <svg class="w-10 h-10 mb-2 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p>قم باختيار أو رفع ملف لبدء استخراج التلخيص أو اختر ملخصاً سابقاً من الأعلى.</p>
+            <p>اختر ملخصاً من القائمة الجانبية أو اضغط على "إنشاء ملخص جديد" لرفع ملف جديد.</p>
           </div>
         </div>
       </div>
 
     </section>
 
-    <!-- Right Column: Interactive Chatbot (5 cols on lg) -->
-    <section class="lg:col-span-5 bg-warm-surface border border-warm-border/80 rounded-2xl flex flex-col h-[600px] lg:h-auto shadow-sm overflow-hidden">
+    <!-- Column 3: Interactive Chatbot for Active Summary (4 cols) -->
+    <section class="lg:col-span-4 bg-warm-surface border border-warm-border/80 rounded-2xl flex flex-col h-[520px] lg:h-[720px] shadow-sm overflow-hidden">
       <!-- Chat Header -->
-      <div class="p-4 border-b border-warm-border/60 bg-warm-surface/90 flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
+      <div class="p-3.5 border-b border-warm-border/60 bg-warm-surface/90 flex items-center justify-between">
+        <div class="flex items-center gap-2">
           <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
           <div>
-            <h3 class="text-sm font-bold text-warm-ink">المساعد الذكي للملف</h3>
-            <p class="text-[11px] text-warm-muted">اسأل، ناقش، أو اطلب تعديل أي جزئية في الملخص</p>
+            <h3 class="text-xs sm:text-sm font-bold text-warm-ink">المساعد الذكي للملخص</h3>
+            <p class="text-[10px] text-warm-muted">اسأل وناقش وعدل بالملخص الحالي</p>
           </div>
         </div>
-        <button id="clear-chat-btn" class="text-xs text-warm-muted hover:text-warm-ink px-2.5 py-1 rounded-lg border border-warm-border/50 hover:bg-warm-border/30 transition" title="مسح المحادثة">
+        <button id="clear-chat-btn" class="text-[11px] text-warm-muted hover:text-warm-ink px-2 py-0.5 rounded border border-warm-border/50 hover:bg-warm-border/30 transition">
           تفريغ
         </button>
       </div>
 
       <!-- Chat Messages Container -->
-      <div id="chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3 text-sm">
-        <div class="self-start max-w-[85%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3.5 text-xs sm:text-sm text-warm-ink leading-relaxed">
-          أهلاً بك! بمجرد رفع المستند وتلخيصه، يمكنك توجيه أي سؤال لي حول تفاصيل المحتوى، أو طلبي لإعادة صياغة نقاط محددة.
+      <div id="chat-messages" class="flex-1 p-3.5 overflow-y-auto flex flex-col gap-2.5 text-xs sm:text-sm">
+        <div class="self-start max-w-[90%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3 text-warm-ink leading-relaxed">
+          أهلاً بك! بمجرد إنشاء أو فتح أي ملخص، يمكنك مناقشة محتواه أو طلب التعديل عليه هنا.
         </div>
       </div>
 
@@ -186,15 +202,15 @@
         <input 
           type="text" 
           id="chat-input" 
-          placeholder="اكتب استفسارك أو طلب التعديل هنا..." 
+          placeholder="اكتب استفسارك أو طلب التعديل..." 
           disabled
-          class="flex-1 bg-warm-bg border border-warm-border rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-warm-accent/40 text-warm-ink disabled:opacity-50"
+          class="flex-1 bg-warm-bg border border-warm-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-warm-accent/40 text-warm-ink disabled:opacity-50"
         >
         <button 
           type="submit" 
           id="chat-send-btn" 
           disabled 
-          class="p-2.5 bg-warm-ink text-warm-bg rounded-xl hover:bg-warm-ink/90 disabled:opacity-40 transition flex items-center justify-center shrink-0"
+          class="p-2 bg-warm-ink text-warm-bg rounded-xl hover:bg-warm-ink/90 disabled:opacity-40 transition flex items-center justify-center shrink-0"
         >
           <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -232,7 +248,7 @@
     </div>
   </div>
 
-  <footer class="py-4 text-center text-xs text-warm-muted border-t border-warm-border/50">
+  <footer class="py-3 text-center text-xs text-warm-muted border-t border-warm-border/50">
     يعمل عبر نماذج Google Gemini 3.8 Flash / 3.5 Flash Lite • واجهة ثابتة مجهزة لـ GitHub Pages
   </footer>
 
