@@ -3,9 +3,27 @@ let currentFile = null;
 let currentSummaryText = "";
 let currentActiveSummaryId = null;
 
-const SUMMARIES_STORAGE_KEY = "document_summaries_list";
+const SUMMARIES_STORAGE_KEY = "document_summaries_dashboard_v1";
 
-// DOM Elements
+// Views
+const homeView = document.getElementById("home-view");
+const workspaceView = document.getElementById("workspace-view");
+
+// Navigation & Actions
+const brandHomeBtn = document.getElementById("brand-home-btn");
+const createNewBtn = document.getElementById("create-new-btn");
+const emptyCreateBtn = document.getElementById("empty-create-btn");
+const backToHomeBtn = document.getElementById("back-to-home-btn");
+const clearAllBtn = document.getElementById("clear-all-btn");
+
+// Dashboard Elements
+const summariesGrid = document.getElementById("summaries-grid");
+const emptyState = document.getElementById("empty-state");
+const summariesTotalBadge = document.getElementById("summaries-total-badge");
+
+// Workspace Elements
+const workspaceDocTitle = document.getElementById("workspace-doc-title");
+const workspaceUploadBox = document.getElementById("workspace-upload-box");
 const dropZone = document.getElementById("drop-zone");
 const dropPrompt = document.getElementById("drop-prompt");
 const fileInput = document.getElementById("file-input");
@@ -22,13 +40,8 @@ const btnLabel = document.getElementById("btn-label");
 
 const summarySkeleton = document.getElementById("summary-skeleton");
 const summaryContent = document.getElementById("summary-content");
-const currentSummaryTitle = document.getElementById("current-summary-title");
 const copySummaryBtn = document.getElementById("copy-summary-btn");
 const downloadSummaryBtn = document.getElementById("download-summary-btn");
-
-const savedSummariesList = document.getElementById("saved-summaries-list");
-const savedCount = document.getElementById("saved-count");
-const clearAllSummariesBtn = document.getElementById("clear-all-summaries-btn");
 
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
@@ -43,7 +56,7 @@ const apiModal = document.getElementById("api-modal");
 const apiKeyInput = document.getElementById("api-key-input");
 const saveKeyBtn = document.getElementById("save-key-btn");
 
-// Initialization
+// App Initialization
 document.addEventListener("DOMContentLoaded", () => {
   apiKeyInput.value = CONFIG.getApiKey();
 
@@ -51,150 +64,199 @@ document.addEventListener("DOMContentLoaded", () => {
     openModal();
   }
 
-  renderSavedSummaries();
+  showHomeDashboard();
 });
 
-// Modal Logic
-function openModal() {
-  apiKeyInput.value = CONFIG.getApiKey();
-  apiModal.classList.remove("hidden");
+// View Navigation Functions
+function showHomeDashboard() {
+  workspaceView.classList.add("hidden");
+  homeView.classList.remove("hidden");
+  renderDashboardCards();
 }
 
-function closeModal() {
-  apiModal.classList.add("hidden");
+function showWorkspace() {
+  homeView.classList.add("hidden");
+  workspaceView.classList.remove("hidden");
 }
 
-openSettingsBtn.addEventListener("click", openModal);
-closeModalBtn.addEventListener("click", closeModal);
-apiModal.addEventListener("click", (e) => {
-  if (e.target === apiModal) closeModal();
-});
+brandHomeBtn.addEventListener("click", showHomeDashboard);
+backToHomeBtn.addEventListener("click", showHomeDashboard);
 
-saveKeyBtn.addEventListener("click", () => {
-  const key = apiKeyInput.value.trim();
-  CONFIG.setApiKey(key);
-  closeModal();
-});
+// "Create New Summary" Action
+function startNewSummaryFlow() {
+  currentActiveSummaryId = null;
+  currentSummaryText = "";
+  currentFile = null;
+  fileInput.value = "";
+  window.geminiService.clearDocument();
 
-// Saved Summaries LocalStorage Operations
+  workspaceDocTitle.textContent = "إنشاء ملخص جديد";
+  workspaceUploadBox.classList.remove("hidden");
+
+  // Reset upload previews
+  dropPrompt.classList.remove("hidden");
+  filePreviewContainer.classList.add("hidden");
+  previewThumbnail.innerHTML = "DOC";
+  generateSummaryBtn.disabled = true;
+
+  // Clear workspace summary content
+  summaryContent.innerHTML = `
+    <div class="flex flex-col items-center justify-center text-center py-20 text-warm-muted">
+      <p>قم بسحب أو رفع مستند بالأعلى واضغط على زر التحليل لبدء توليد الملخص.</p>
+    </div>
+  `;
+
+  // Reset chat
+  window.geminiService.clearHistory();
+  chatMessages.innerHTML = `
+    <div class="self-start max-w-[85%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3.5 text-warm-ink leading-relaxed">
+      أهلاً بك! بمجرد رفع وتلخيص هذا المستند، سأكون جاهزاً للإجابة عن أسئلتك وتعديلاته.
+    </div>
+  `;
+  chatInput.disabled = true;
+  chatSendBtn.disabled = true;
+
+  showWorkspace();
+}
+
+createNewBtn.addEventListener("click", startNewSummaryFlow);
+emptyCreateBtn.addEventListener("click", startNewSummaryFlow);
+
+// LocalStorage Helper Functions
 function getStoredSummaries() {
   try {
     const raw = localStorage.getItem(SUMMARIES_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
-    console.error("Error loading summaries:", e);
+    console.error("Error reading storage:", e);
     return [];
   }
 }
 
 function saveSummaryItem(item) {
   const list = getStoredSummaries();
-  list.unshift(item); // Add newest first
+  list.unshift(item); // Newest first
   localStorage.setItem(SUMMARIES_STORAGE_KEY, JSON.stringify(list));
-  renderSavedSummaries();
 }
 
-function deleteSummaryItem(id, event) {
-  if (event) event.stopPropagation();
+function deleteSummary(id, e) {
+  if (e) e.stopPropagation();
   let list = getStoredSummaries();
   list = list.filter((s) => s.id !== id);
   localStorage.setItem(SUMMARIES_STORAGE_KEY, JSON.stringify(list));
-
-  if (currentActiveSummaryId === id) {
-    currentActiveSummaryId = null;
-    currentSummaryText = "";
-    currentSummaryTitle.textContent = "الملخص التنفيذي";
-    summaryContent.innerHTML = `
-      <div class="flex flex-col items-center justify-center text-center py-20 text-warm-muted">
-        <p>تم حذف الملخص. قم برفع مستند جديد أو اختيار ملخص محفوظ آخر.</p>
-      </div>
-    `;
-  }
-  renderSavedSummaries();
+  renderDashboardCards();
 }
 
-function clearAllSummaries() {
+clearAllBtn.addEventListener("click", () => {
   if (!confirm("هل أنت متأكد من مسح جميع الملخصات المحفوظة؟")) return;
   localStorage.removeItem(SUMMARIES_STORAGE_KEY);
-  currentActiveSummaryId = null;
-  currentSummaryText = "";
-  currentSummaryTitle.textContent = "الملخص التنفيذي";
-  summaryContent.innerHTML = `
-    <div class="flex flex-col items-center justify-center text-center py-20 text-warm-muted">
-      <p>لا توجد ملخصات. قم باختيار أو رفع ملف جديد.</p>
-    </div>
-  `;
-  renderSavedSummaries();
-}
+  renderDashboardCards();
+});
 
-clearAllSummariesBtn.addEventListener("click", clearAllSummaries);
-
-function renderSavedSummaries() {
+// Render Home Dashboard Cards
+function renderDashboardCards() {
   const summaries = getStoredSummaries();
-  savedCount.textContent = summaries.length;
+  summariesTotalBadge.textContent = summaries.length;
 
   if (summaries.length === 0) {
-    savedSummariesList.innerHTML = `<span class="text-[11px] text-warm-muted py-1 px-2 italic">لا توجد ملخصات محفوظة حتى الآن. ستُحفظ ملخصاتك تلقائياً هنا.</span>`;
+    summariesGrid.innerHTML = "";
+    emptyState.classList.remove("hidden");
+    clearAllBtn.classList.add("hidden");
     return;
   }
 
-  savedSummariesList.innerHTML = "";
-  summaries.forEach((item) => {
-    const chip = document.createElement("div");
-    const isActive = item.id === currentActiveSummaryId;
-    chip.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition cursor-pointer shrink-0 ${
-      isActive 
-        ? "bg-warm-ink text-warm-bg border-warm-ink" 
-        : "bg-warm-bg hover:bg-warm-border/40 text-warm-ink border-warm-border"
-    }`;
+  emptyState.classList.add("hidden");
+  clearAllBtn.classList.remove("hidden");
+  summariesGrid.innerHTML = "";
 
-    chip.innerHTML = `
-      <span class="truncate max-w-[130px] font-medium">${item.title}</span>
-      <button class="delete-chip-btn text-[11px] hover:text-red-500 ml-1 p-0.5" title="حذف هذا الملخص">✕</button>
+  summaries.forEach((item) => {
+    // Generate clean text snippet without markdown symbols
+    const cleanSnippet = item.content
+      .replace(/[#*`_~>-]/g, "")
+      .replace(/\n+/g, " ")
+      .slice(0, 160) + "...";
+
+    const card = document.createElement("div");
+    card.className = "bg-warm-surface border border-warm-border/80 hover:border-warm-accent/60 rounded-3xl p-5 shadow-sm hover:shadow transition flex flex-col justify-between cursor-pointer group";
+
+    card.innerHTML = `
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-warm-accent/10 border border-warm-accent/20 flex items-center justify-center text-warm-accent shrink-0 text-xs font-bold">
+              ✦
+            </div>
+            <h4 class="font-bold text-sm text-warm-ink truncate group-hover:text-warm-accent transition">${item.title}</h4>
+          </div>
+          <button class="delete-card-btn p-1.5 text-warm-muted hover:text-red-500 rounded-lg hover:bg-warm-border/30 transition shrink-0" title="حذف الملخص">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-xs text-warm-muted leading-relaxed line-clamp-4 mb-4">${cleanSnippet}</p>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-warm-border/50 text-[11px] text-warm-muted">
+        <span>${item.date}</span>
+        <span class="font-semibold text-warm-ink flex items-center gap-1 group-hover:translate-x-[-2px] transition">
+          فتح ومحادثة ←
+        </span>
+      </div>
     `;
 
-    chip.addEventListener("click", () => {
-      loadSavedSummary(item);
+    card.addEventListener("click", () => {
+      openExistingSummary(item);
     });
 
-    const delBtn = chip.querySelector(".delete-chip-btn");
+    const delBtn = card.querySelector(".delete-card-btn");
     delBtn.addEventListener("click", (e) => {
-      deleteSummaryItem(item.id, e);
+      deleteSummary(item.id, e);
     });
 
-    savedSummariesList.appendChild(chip);
+    summariesGrid.appendChild(card);
   });
 }
 
-function loadSavedSummary(item) {
+// Open and Inspect Existing Summary in Workspace
+function openExistingSummary(item) {
   currentActiveSummaryId = item.id;
   currentSummaryText = item.content;
-  currentSummaryTitle.textContent = item.title;
+
+  workspaceDocTitle.textContent = item.title;
+  // Hide upload form when viewing existing summary to keep interface clean
+  workspaceUploadBox.classList.add("hidden");
+
   summaryContent.innerHTML = marked.parse(item.content);
 
-  // Re-enable chat with historical context if needed
+  // Re-enable chat focused on this specific document
+  window.geminiService.clearHistory();
+  chatMessages.innerHTML = `
+    <div class="self-start max-w-[85%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3.5 text-xs sm:text-sm text-warm-ink leading-relaxed">
+      أنت الآن تستعرض ملخص: <strong>${item.title}</strong>. يمكنك طرح أي سؤال حول محتواه أو طلب إعادة صياغة أي فقرة فيه!
+    </div>
+  `;
   chatInput.disabled = false;
   chatSendBtn.disabled = false;
-  renderSavedSummaries();
 
-  appendBotMessage(`تم استدعاء الملخص الخاص بـ **${item.title}**. يمكنك الآن متابعة الأسئلة والتعديلات عليه.`);
+  showWorkspace();
 }
 
-// File Handling & Drag-and-Drop
+// File Drag & Drop Handling
 dropZone.addEventListener("click", (e) => {
   if (e.target.closest("#remove-file-btn")) return;
   fileInput.click();
 });
 
-["dragenter", "dragover"].forEach((eventName) => {
-  dropZone.addEventListener(eventName, (e) => {
+["dragenter", "dragover"].forEach((name) => {
+  dropZone.addEventListener(name, (e) => {
     e.preventDefault();
     dropZone.classList.add("drag-active");
   });
 });
 
-["dragleave", "drop"].forEach((eventName) => {
-  dropZone.addEventListener(eventName, (e) => {
+["dragleave", "drop"].forEach((name) => {
+  dropZone.addEventListener(name, (e) => {
     e.preventDefault();
     dropZone.classList.remove("drag-active");
   });
@@ -202,15 +264,11 @@ dropZone.addEventListener("click", (e) => {
 
 dropZone.addEventListener("drop", (e) => {
   const files = e.dataTransfer.files;
-  if (files && files[0]) {
-    handleFileSelected(files[0]);
-  }
+  if (files && files[0]) handleFileSelected(files[0]);
 });
 
 fileInput.addEventListener("change", (e) => {
-  if (e.target.files && e.target.files[0]) {
-    handleFileSelected(e.target.files[0]);
-  }
+  if (e.target.files && e.target.files[0]) handleFileSelected(e.target.files[0]);
 });
 
 function formatFileSize(bytes) {
@@ -220,10 +278,9 @@ function formatFileSize(bytes) {
 }
 
 function handleFileSelected(file) {
-  // Check payload limitation (approx 20MB for browser-based inlineData)
   const maxBytes = 20 * 1024 * 1024;
   if (file.size > maxBytes) {
-    alert("حجم الملف كبير جداً (أكثر من 20MB). يرجى اختيار ملف أصغر حجماً لتفادي تجاوز سعة الإرسال المباشر.");
+    alert("حجم الملف يتجاوز 20MB. يرجى اختيار ملف أصغر لتفادي تجاوز حد الإرسال المباشر بالمتصفح.");
     return;
   }
 
@@ -267,12 +324,12 @@ function fileToBase64(file) {
       const base64String = reader.result.split(",")[1];
       resolve(base64String);
     };
-    reader.onerror = (error) => reject(error);
+    reader.onerror = (err) => reject(err);
     reader.readAsDataURL(file);
   });
 }
 
-// Generate Summary
+// Generate, Save & Add to Home Dashboard
 generateSummaryBtn.addEventListener("click", async () => {
   if (!currentFile) return;
 
@@ -283,7 +340,7 @@ generateSummaryBtn.addEventListener("click", async () => {
 
   generateSummaryBtn.disabled = true;
   btnSpinner.classList.remove("hidden");
-  btnLabel.textContent = "جاري قراءة وتحليل المستند...";
+  btnLabel.textContent = "جاري قراءة وتحليل المستند وحفظه...";
   summarySkeleton.classList.remove("hidden");
   summaryContent.innerHTML = "";
 
@@ -304,22 +361,29 @@ generateSummaryBtn.addEventListener("click", async () => {
     currentSummaryText = summaryMarkdown;
     summaryContent.innerHTML = marked.parse(summaryMarkdown);
 
-    // Save newly generated summary to storage list
+    // Save summary permanently to Home Dashboard
     const newSummaryId = "sum_" + Date.now();
+    const formattedDate = new Date().toLocaleDateString("ar-SA", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+
     const newSummaryItem = {
       id: newSummaryId,
       title: currentFile.name,
       content: summaryMarkdown,
-      timestamp: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })
+      date: formattedDate
     };
+
     currentActiveSummaryId = newSummaryId;
-    currentSummaryTitle.textContent = currentFile.name;
+    workspaceDocTitle.textContent = currentFile.name;
     saveSummaryItem(newSummaryItem);
 
-    // Enable interactive chat
+    // Enable chat
     chatInput.disabled = false;
     chatSendBtn.disabled = false;
-    appendBotMessage(`تم تلخيص وحفظ مستند **${currentFile.name}** بنجاح! يمكنك الآن توجيه أسئلتك حوله أو التنقل بين ملخصاتك السابقة من الشريط أعلاه.`);
+    appendBotMessage(`تم بنجاح تلخيص **${currentFile.name}** وحفظه في صفحتك الرئيسية! يمكنك الآن توجيه أي أسئلة عليه أو الضغط على "العودة للرئيسية" لمشاهدة جميع ملخصاتك.`);
 
   } catch (error) {
     summaryContent.innerHTML = `
@@ -335,37 +399,34 @@ generateSummaryBtn.addEventListener("click", async () => {
   }
 });
 
-// Copy Summary Action
+// Copy & Download
 copySummaryBtn.addEventListener("click", async () => {
   if (!currentSummaryText) return;
   try {
     await navigator.clipboard.writeText(currentSummaryText);
-    const originalText = copySummaryBtn.querySelector("span").textContent;
-    copySummaryBtn.querySelector("span").textContent = "تم النسخ!";
-    setTimeout(() => {
-      copySummaryBtn.querySelector("span").textContent = originalText;
-    }, 2000);
+    const span = copySummaryBtn.querySelector("span");
+    const prev = span.textContent;
+    span.textContent = "تم النسخ!";
+    setTimeout(() => { span.textContent = prev; }, 2000);
   } catch (err) {
-    console.error("Failed to copy: ", err);
+    console.error("Copy failed:", err);
   }
 });
 
-// Download Summary Action
 downloadSummaryBtn.addEventListener("click", () => {
   if (!currentSummaryText) return;
   const blob = new Blob([currentSummaryText], { type: "text/markdown;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  const fileName = currentSummaryTitle.textContent ? `${currentSummaryTitle.textContent}-summary.md` : `summary-${Date.now()}.md`;
-  a.download = fileName;
+  a.download = `${workspaceDocTitle.textContent}-summary.md`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
 
-// Interactive Chat Logic
+// Interactive Chat
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
@@ -420,7 +481,29 @@ clearChatBtn.addEventListener("click", () => {
   window.geminiService.clearHistory();
   chatMessages.innerHTML = `
     <div class="self-start max-w-[85%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3.5 text-xs sm:text-sm text-warm-ink leading-relaxed">
-      تم مسح سجل المحادثة. يمكنك بدء طرح أسئلة جديدة حول المستند الحالي.
+      تم تفريغ المحادثة لهذا الملخص.
     </div>
   `;
+});
+
+// Modal Logic
+function openModal() {
+  apiKeyInput.value = CONFIG.getApiKey();
+  apiModal.classList.remove("hidden");
+}
+
+function closeModal() {
+  apiModal.classList.add("hidden");
+}
+
+openSettingsBtn.addEventListener("click", openModal);
+closeModalBtn.addEventListener("click", closeModal);
+apiModal.addEventListener("click", (e) => {
+  if (e.target === apiModal) closeModal();
+});
+
+saveKeyBtn.addEventListener("click", () => {
+  const key = apiKeyInput.value.trim();
+  CONFIG.setApiKey(key);
+  closeModal();
 });
