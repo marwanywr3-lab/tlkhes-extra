@@ -9,11 +9,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- محرك استخراج نصوص PDF الضخمة حتى 500MB مباشرة في المتصفح -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  </script>
   <style>
     :root {
       --warm-bg: #F7F5F0;
@@ -80,7 +75,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold tracking-tight text-warm-ink">مساعد المستندات</h1>
-          <p class="text-xs text-warm-muted hidden sm:block">منصة تلخيص المستندات والكتب الضخمة حتى 500MB</p>
+          <p class="text-xs text-warm-muted hidden sm:block">منصة إدارة وتلخيص المستندات الذكية</p>
         </div>
       </div>
 
@@ -113,7 +108,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-warm-surface border border-warm-border/80 rounded-3xl p-6 sm:p-8 shadow-sm">
         <div>
           <h2 class="text-xl sm:text-2xl font-bold text-warm-ink mb-1">ملخصات مستنداتك</h2>
-          <p class="text-xs sm:text-sm text-warm-muted">استعرض جميع المستندات الملخصة، أو أنشئ ملخصاً لمستند جديد بدون قيود على الحجم.</p>
+          <p class="text-xs sm:text-sm text-warm-muted">استعرض جميع المستندات التي تم تلخيصها سابقاً، أو أنشئ ملخصاً جديداً في أي وقت.</p>
         </div>
         <button onclick="openUploadModal()" class="px-5 py-3 bg-warm-ink text-warm-bg font-semibold rounded-2xl hover:bg-warm-ink/90 active:scale-95 transition flex items-center justify-center gap-2 shadow-sm shrink-0">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,7 +138,7 @@
             </svg>
           </div>
           <h4 class="text-base font-bold text-warm-ink mb-1">لا يوجد أي ملخص حتى الآن</h4>
-          <p class="text-xs text-warm-muted max-w-sm mb-4">ابدأ برفع مستندك الأول (PDF، صور، أو نصوص) واستمتع بالتحليل الذكي.</p>
+          <p class="text-xs text-warm-muted max-w-sm mb-4">ابدأ برفع مستندك الأول (PDF، صور، أو نصوص) ليتم حفظه وتلخيصه هنا تلقائياً.</p>
           <button onclick="openUploadModal()" class="px-4 py-2 bg-warm-ink text-warm-bg text-xs font-semibold rounded-xl hover:bg-warm-ink/90 transition">
             + إنشاء ملخص جديد الآن
           </button>
@@ -247,7 +242,7 @@
             </svg>
           </div>
           <p class="text-sm font-semibold text-warm-ink">اسحب وأفلت الملف هنا، أو <span class="text-warm-accent underline underline-offset-4">تصفح جهازك</span></p>
-          <p class="text-xs text-warm-muted">يدعم PDF، الصور، والنصوص والكتب الكاملة (حتى 500MB)</p>
+          <p class="text-xs text-warm-muted">يدعم PDF، الصور، والنصوص (حد أقصى 20MB)</p>
         </div>
 
         <div id="modal-file-preview" class="hidden flex items-center justify-between p-3 bg-warm-surface border border-warm-border rounded-xl">
@@ -259,17 +254,6 @@
             </div>
           </div>
           <button onclick="removeSelectedFile(event)" class="p-1 text-warm-muted hover:text-red-500 transition">✕</button>
-        </div>
-      </div>
-
-      <!-- Reading Status Indicator -->
-      <div id="reading-status-container" class="hidden space-y-1.5">
-        <div class="flex items-center justify-between text-xs text-warm-muted">
-          <span id="reading-status-text">جاري قراءة محتوى المستند في المتصفح...</span>
-          <span id="reading-status-pct" class="font-bold text-warm-ink"></span>
-        </div>
-        <div class="w-full bg-warm-border/50 h-2 rounded-full overflow-hidden">
-          <div id="reading-status-bar" class="bg-warm-accent h-full w-0 transition-all duration-200"></div>
         </div>
       </div>
 
@@ -313,18 +297,20 @@
   </div>
 
   <footer class="py-4 text-center text-xs text-warm-muted border-t border-warm-border/50">
-    محرك استخراج نصوص PDF مدمج يدعم حتى 500MB • نماذج Gemini 3.8 Flash / 3.5 Flash Lite
+    يعمل عبر نماذج Google Gemini 3.8 Flash / 3.5 Flash Lite • جاهز على GitHub Pages
   </footer>
 
+  <!-- Unified Logic Script -->
   <script>
     const STORAGE_KEY_API = "gemini_api_key";
-    const STORAGE_KEY_SUMMARIES = "document_summaries_v5";
+    const STORAGE_KEY_SUMMARIES = "document_summaries_v3";
 
     let selectedUploadFile = null;
     let currentActiveSummary = null;
     let conversationHistory = [];
-    let activeExtractedContext = "";
+    let currentDocumentPart = null;
 
+    // API & Keys
     function getApiKey() {
       return localStorage.getItem(STORAGE_KEY_API) || "";
     }
@@ -342,6 +328,7 @@
       document.getElementById("api-modal").classList.add("hidden");
     }
 
+    // View Navigation
     function showHomeDashboard() {
       document.getElementById("workspace-view").classList.add("hidden");
       document.getElementById("home-view").classList.remove("hidden");
@@ -350,19 +337,13 @@
 
     function showWorkspace(item) {
       currentActiveSummary = item;
-      activeExtractedContext = item.rawContent || item.content;
-
       document.getElementById("home-view").classList.add("hidden");
       document.getElementById("workspace-view").classList.remove("hidden");
 
       document.getElementById("workspace-doc-title").textContent = item.title;
       document.getElementById("summary-content").innerHTML = marked.parse(item.content);
 
-      conversationHistory = [
-        { role: "user", parts: [{ text: `محتوى المستند:\n${activeExtractedContext.slice(0, 150000)}` }] },
-        { role: "model", parts: [{ text: item.content }] }
-      ];
-
+      conversationHistory = [];
       document.getElementById("chat-messages").innerHTML = `
         <div class="self-start max-w-[85%] bg-warm-bg border border-warm-border/60 rounded-2xl rounded-tr-none p-3.5 text-warm-ink leading-relaxed">
           أنت الآن تستعرض ملخص: <strong>${item.title}</strong>. يمكنك مناقشة أي معلومة، أو سؤالي عن جزئيات محددة، أو طلب إعادة صياغة لنقاط معينة.
@@ -370,6 +351,7 @@
       `;
     }
 
+    // Upload Modal Handling
     function openUploadModal() {
       resetUploadModal();
       document.getElementById("upload-modal").classList.remove("hidden");
@@ -390,11 +372,6 @@
       document.getElementById("modal-btn-label").textContent = "بدء التحليل وحفظ الملخص";
       document.getElementById("modal-error-box").classList.add("hidden");
       document.getElementById("modal-error-box").textContent = "";
-
-      const prg = document.getElementById("reading-status-container");
-      prg.classList.add("hidden");
-      document.getElementById("reading-status-bar").style.width = "0%";
-      document.getElementById("reading-status-pct").textContent = "";
     }
 
     function triggerFileInput(e) {
@@ -407,10 +384,8 @@
     }
 
     function handleFile(file) {
-      // رفع الحد حتى 500 ميجابايت بدون أي تنبيه مانع
-      const maxBytes = 500 * 1024 * 1024;
-      if (file.size > maxBytes) {
-        alert("حجم الملف يتجاوز 500MB.");
+      if (file.size > 20 * 1024 * 1024) {
+        alert("حجم الملف أكبر من 20MB. يرجى اختيار ملف أصغر.");
         return;
       }
       selectedUploadFile = file;
@@ -428,6 +403,7 @@
       resetUploadModal();
     }
 
+    // Drag and drop setup for modal
     const dz = document.getElementById("modal-drop-zone");
     ["dragenter", "dragover"].forEach(evt => {
       dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add("drag-active"); });
@@ -440,37 +416,7 @@
       if (f && f[0]) handleFile(f[0]);
     });
 
-    // محرك استخراج نصوص PDF فائق السرعة في المتصفح لأحجام حتى 500MB
-    async function extractTextFromPDF(file, onProgress) {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      const totalPages = pdf.numPages;
-      let fullText = "";
-
-      for (let i = 1; i <= totalPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(" ");
-        fullText += `\n[صفحة ${i}]:\n` + pageText;
-
-        if (onProgress) {
-          const pct = Math.round((i / totalPages) * 100);
-          onProgress(pct, i, totalPages);
-        }
-      }
-      return fullText;
-    }
-
-    function readFileAsText(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsText(file);
-      });
-    }
-
-    function readFileAsBase64(file) {
+    function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.split(",")[1]);
@@ -479,7 +425,7 @@
       });
     }
 
-    // Process Large Document with Gemini API
+    // Process Summary with Gemini API
     async function startSummaryProcessing() {
       if (!selectedUploadFile) return;
       const apiKey = getApiKey();
@@ -492,67 +438,34 @@
       const spinner = document.getElementById("modal-spinner");
       const label = document.getElementById("modal-btn-label");
       const errBox = document.getElementById("modal-error-box");
-      const statusContainer = document.getElementById("reading-status-container");
-      const statusBar = document.getElementById("reading-status-bar");
-      const statusPct = document.getElementById("reading-status-pct");
-      const statusText = document.getElementById("reading-status-text");
 
       btn.disabled = true;
       spinner.classList.remove("hidden");
+      label.textContent = "جاري التحليل والتلخيص...";
       errBox.classList.add("hidden");
-      statusContainer.classList.remove("hidden");
 
       try {
-        let requestParts = [];
-        let extractedRawText = "";
-        const isPdf = selectedUploadFile.type === "application/pdf" || selectedUploadFile.name.toLowerCase().endsWith(".pdf");
-        const isImage = selectedUploadFile.type.startsWith("image/");
-
-        if (isPdf) {
-          statusText.textContent = "جاري قراءة صفحات الـ PDF واستخراج النصوص بالكامل...";
-          const text = await extractTextFromPDF(selectedUploadFile, (pct, curr, total) => {
-            statusBar.style.width = pct + "%";
-            statusPct.textContent = `${pct}% (صفحة ${curr}/${total})`;
-          });
-
-          extractedRawText = text;
-          statusText.textContent = "اكتملت القراءة! جاري التحليل وصياغة التلخيص عبر Gemini...";
-          label.textContent = "جاري التلخيص بواسطة Gemini...";
-
-          requestParts = [{ text: `محتوى المستند بالكامل:\n${text}` }];
-        } else if (isImage) {
-          statusText.textContent = "جاري قراءة الصورة...";
-          const b64 = await readFileAsBase64(selectedUploadFile);
-          requestParts = [{
-            inlineData: {
-              mimeType: selectedUploadFile.type || "image/jpeg",
-              data: b64
-            }
-          }];
-        } else {
-          statusText.textContent = "جاري قراءة الملف النصي...";
-          const text = await readFileAsText(selectedUploadFile);
-          extractedRawText = text;
-          requestParts = [{ text: `محتوى الملف:\n${text}` }];
+        const base64Data = await fileToBase64(selectedUploadFile);
+        let mimeType = selectedUploadFile.type;
+        if (!mimeType) {
+          if (selectedUploadFile.name.endsWith(".pdf")) mimeType = "application/pdf";
+          else if (selectedUploadFile.name.endsWith(".txt")) mimeType = "text/plain";
+          else mimeType = "application/octet-stream";
         }
 
-        const promptText = `أنت خبير ومحلل دقيق للمستندات والكتب والبيانات. قم بمراجعة هذا المستند وتحليله وتقديم ملخص تنفيذي احترافي ودقيق باللغة العربية بتنسيق Markdown غني يحتوي على:
-1. **نظرة عامة / الغرض من المستند:** سطرين يحددان ماهية المحتوى والهدف منه.
-2. **أبرز النقاط والمحاور الرئيسية:** استعراض دقيق ومرتب لأهم الفصول أو البنود.
-3. **أهم الأرقام أو القرارات أو التواريخ (إن وُجدت):** رصد دقيق للبيانات المؤثرة.
-4. **الخلاصة والتوصيات:** خاتمة موجزة وعملية.`;
-
-        requestParts.push({ text: promptText });
+        currentDocumentPart = { inlineData: { mimeType, data: base64Data } };
 
         const model = document.getElementById("model-select").value;
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const promptText = `أنت خبير ومحلل دقيق للمستندات. قم بمراجعة هذا المستند وتقديم ملخص تنفيذي احترافي باللغة العربية بتنسيق Markdown يحتوي على: الغرض من المستند، أبرز النقاط والمحاور، الأرقام والقرارات المهمة، والتوصيات.`;
 
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: requestParts }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 4000 }
+            contents: [{ role: "user", parts: [currentDocumentPart, { text: promptText }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 3000 }
           })
         });
 
@@ -565,17 +478,22 @@
         const summaryText = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!summaryText) throw new Error("لم يتم استلام أي نص صالح من النموذج.");
 
+        // Save Summary
         const newItem = {
           id: "sum_" + Date.now(),
           title: selectedUploadFile.name,
           content: summaryText,
-          rawContent: extractedRawText,
           date: new Date().toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })
         };
 
         const list = getStoredSummaries();
         list.unshift(newItem);
         localStorage.setItem(STORAGE_KEY_SUMMARIES, JSON.stringify(list));
+
+        conversationHistory = [
+          { role: "user", parts: [currentDocumentPart, { text: promptText }] },
+          { role: "model", parts: [{ text: summaryText }] }
+        ];
 
         closeUploadModal();
         showWorkspace(newItem);
@@ -589,6 +507,7 @@
       }
     }
 
+    // Storage Management
     function getStoredSummaries() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_SUMMARIES);
@@ -611,6 +530,7 @@
       renderDashboardCards();
     }
 
+    // Dashboard Cards Renderer
     function renderDashboardCards() {
       const summaries = getStoredSummaries();
       document.getElementById("summaries-total-badge").textContent = summaries.length;
@@ -656,6 +576,7 @@
       });
     }
 
+    // Chatbot Submit Logic
     async function handleChatSubmit(e) {
       e.preventDefault();
       const input = document.getElementById("chat-input");
@@ -750,6 +671,7 @@
       `;
     }
 
+    // Copy & Download
     async function copyCurrentSummary() {
       if (!currentActiveSummary) return;
       await navigator.clipboard.writeText(currentActiveSummary.content);
@@ -772,6 +694,7 @@
       URL.revokeObjectURL(url);
     }
 
+    // Startup
     document.addEventListener("DOMContentLoaded", () => {
       if (!getApiKey()) openSettingsModal();
       renderDashboardCards();
